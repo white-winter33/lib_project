@@ -1,6 +1,12 @@
 import pandas as pd
 from tkinter import *
 from tkinter import messagebox, ttk
+import datetime
+
+User = pd.read_csv('UserMake_DF.csv', encoding='utf-8-sig')
+Book = pd.read_csv('BookMake_DF.csv', encoding='utf-8-sig')
+Rent = pd.read_csv('RentMake_DF.csv', encoding='utf-8-sig')
+
 
 window = Tk()
 window.title("도서 관리 프로그램")
@@ -14,11 +20,25 @@ def Member_make() :
     def register() :
         MsgBox = messagebox.askquestion ('등록 확인','등록하시겠습니까??')
         if MsgBox == 'yes':
-            messagebox.showinfo("등록 완료", "등록이 완료되었습니다.")
-            toplevel.destroy()
+            if (User['User_phone'] == phonetext.get()).any() :
+                messagebox.showinfo("중복", "이미 등록된 전화번호입니다.")
+            else : 
+                today = datetime.datetime.now()
+                today = today.date()
+                messagebox.showinfo("등록 완료", "등록이 완료되었습니다.")
+                User.loc[phonetext.get()] = [phonetext.get(), nametext.get(), birthdaytext.get() ,sextext.get(), mailtext.get(), today, 'X', 0, 'X']
+                User.set_index('User_phone', inplace = True)
+                User.to_csv('UserMake_DF.csv', mode = 'w', header = True, encoding='utf-8-sig')
+                toplevel.destroy()
         else:
             messagebox.showinfo("등록 취소", "등록이 취소되었습니다.")
             toplevel.destroy()
+        
+    def overlapcheck() :
+        if (User['User_phone'] == phonetext.get()).any() :
+            messagebox.showinfo("중복", "이미 등록된 전화번호입니다.")
+        else : 
+            messagebox.showinfo("사용 가능", "사용 가능한 전화번호입니다.")
 
 
     toplevel=Toplevel(window)
@@ -27,6 +47,7 @@ def Member_make() :
     label=Label(toplevel, text="회원등록", font = ("돋움체", 20))
     label.place(x = 290, y = 30)
 
+    global phonetext
     phonelabel1 = Label(toplevel, text = "전화번호")
     phonelabel1.place(x = 225, y= 100)
     phonetext = Entry(toplevel, width = 20)
@@ -54,8 +75,10 @@ def Member_make() :
 
     clearbutton = Button(toplevel, text = "등록", command = register)
     cancelbutton = Button(toplevel, text = "취소", command = quit1)
+    overlapbutton = Button(toplevel, text = "중복 조회", command = overlapcheck ,font =("돋움체", 8),fg= "red" , width = 10)
     clearbutton.place(x = 275, y = 400)
     cancelbutton.place(x = 375, y = 400)
+    overlapbutton.place(x = 480, y =100)
 
 def Member_search() : 
     def search() :
@@ -75,8 +98,18 @@ def Member_search() :
         treeview.column("대여여부", width = 100, anchor = CENTER)
         treeview.heading("대여여부", text = "대여여부", anchor = CENTER)
         treeview["show"] = "headings"
+        
+        Search = User[(User['User_phone'] == phonetext2.get()) | (User['User_name'] == nametext2.get())]
+        Search = Search[['User_name', 'User_birthday', 'User_phone', 'User_sex', 'User_withdrawcheck', 'User_rentcnt']]
+        Search = Search.values.tolist()
+        for i in range(len(Search)):
+            treeview.insert("", "end", text = "", values=Search[i], iid = i)
 
-    def choice() :
+
+        treeview.bind('<Double-Button-1>', choice)
+
+    def choice(event) :
+        Search = User[(User['User_phone'] == phonetext2.get()) | (User['User_name'] == nametext2.get())]
         toplevel3 =Toplevel(window)
         toplevel3.geometry("700x500")
 
@@ -85,46 +118,88 @@ def Member_search() :
 
         phonelabel3 = Label(toplevel3, text = "전화번호")
         phonelabel3.place(x = 225, y= 90)
-        phonetext2 = Entry(toplevel3, width = 20)
-        phonetext2.place(x = 325, y= 90)
+        phonetext3 = Entry(toplevel3, width = 20)
+        phonetext3.insert(0, Search.iloc[0]['User_phone'])
+        phonetext3.place(x = 325, y= 90)
 
         namelabel3 = Label(toplevel3, text = "이름")
         namelabel3.place(x = 225, y= 140)
-        nametext2 = Entry(toplevel3, width = 20)
-        nametext2.place(x = 325, y= 140)
+        nametext3 = Entry(toplevel3, width = 20)
+        nametext3.insert(0, Search.iloc[0]['User_name'])
+        nametext3.place(x = 325, y= 140)
 
         birthdaylabel3 = Label(toplevel3, text = "생일")
         birthdaylabel3.place(x = 225, y=190 )
-        birthdaytext2 = Entry(toplevel3, width = 20)
-        birthdaytext2.place(x = 325, y= 190)
+        birthdaytext3 = Entry(toplevel3, width = 20)
+        birthdaytext3.insert(0, Search.iloc[0]['User_birthday'])
+        birthdaytext3.place(x = 325, y= 190)
 
         sexlabel3 = Label(toplevel3, text = "성별")
         sexlabel3.place(x = 225, y= 240)
-        sextext2 = Entry(toplevel3, width = 20)
-        sextext2.place(x = 325, y= 240)
+        sextext3 = Entry(toplevel3, width = 20)
+        sextext3.insert(0, Search.iloc[0]['User_sex'])
+        sextext3.place(x = 325, y= 240)
 
         maillabel3 = Label(toplevel3, text = "메일")
         maillabel3.place(x = 225, y= 290)
-        mailtext2 = Entry(toplevel3, width = 20)
-        mailtext2.place(x = 325, y= 290)
+        mailtext3 = Entry(toplevel3, width = 20)
+        mailtext3.insert(0, Search.iloc[0]['User_mail'])
+        mailtext3.place(x = 325, y= 290)
 
         rentlabel = Label(toplevel3, text = "대여 여부")
         rentlabel.place(x = 185, y= 340)
         renttext = Entry(toplevel3, width = 5)
+        renttext.insert(0, Search.iloc[0]['User_rentcnt'])
         renttext.place(x = 255, y= 340)
 
         quitlabel1 = Label(toplevel3, text = "탈퇴 여부")
         quitlabel1.place(x = 385, y= 340)
         quittext = Entry(toplevel3, width = 5)
+        quittext.insert(0, Search.iloc[0]['User_withdrawcheck'])
         quittext.place(x = 455, y= 340)
 
         def modify() :
-            messagebox.showinfo("수정 완료", "수정이 완료되었습니다.")
-            toplevel3.destroy()
-            toplevel2.destroy()
+            MsgBox = messagebox.askquestion ('수정 확인','수정하시겠습니까??')
+            if MsgBox == 'yes':
+                if (phonetext3.get()) == (phonetext3.get()) :
+                    messagebox.showinfo("수정 완료", "수정이 완료되었습니다.")
+                    User.loc[(User['User_phone'] == phonetext2.get()) | (User['User_name'] == nametext2.get()), ('User_phone', 'User_name', 'User_birthday', 'User_sex', 'User_mail')] = [phonetext3.get(), nametext3.get(), birthdaytext3.get() ,sextext3.get(), mailtext3.get()]
+                    User.set_index('User_phone', inplace = True)
+                    User.to_csv('UserMake_DF.csv', mode = 'w', header = True, encoding='utf-8-sig')
+                    toplevel3.destroy()
+                    toplevel2.destroy()
+                    
+                elif (User['User_phone'] == phonetext3.get()).any() :
+                    messagebox.showinfo("중복", "이미 등록된 전화번호입니다.")
+
+                else : 
+                    messagebox.showinfo("수정 완료", "수정이 완료되었습니다.")
+                    User.loc[(User['User_phone'] == phonetext2.get()) | (User['User_name'] == nametext2.get()), ('User_phone', 'User_name', 'User_birthday', 'User_sex', 'User_mail')] = [phonetext3.get(), nametext3.get(), birthdaytext3.get() ,sextext3.get(), mailtext3.get()]
+                    User.set_index('User_phone', inplace = True)
+                    User.to_csv('UserMake_DF.csv', mode = 'w', header = True, encoding='utf-8-sig')
+                    toplevel3.destroy()
+                    toplevel2.destroy()
+                    
+            else:
+                messagebox.showinfo("수정 취소", "수정이 취소되었습니다.")
+                toplevel2.destroy()
+        
+        def overlapcheck() :
+            if (phonetext3.get()) == (phonetext3.get()) :
+                return 
+            else : 
+                if (User['User_phone'] == phonetext3.get()).any() :
+                    messagebox.showinfo("중복", "이미 등록된 전화번호입니다.")
+                else : 
+                    messagebox.showinfo("사용 가능", "사용 가능한 전화번호입니다.")
 
         def out() :
-            messagebox.showinfo("탈퇴 완료", "탈퇴가 완료되었습니다.")
+            if User['User_withdrawcheck'] == 'x' :
+                User.loc[(User['User_phone'] == phonetext2.get()) | (User['User_name'] == nametext2.get()), ('User_withdrawcheck')] = 'O'
+                messagebox.showinfo("탈퇴 완료", "탈퇴가 완료되었습니다.")
+            else :
+                messagebox.showinfo("탈퇴 불가능", "이미 탈퇴한 회원은 탈퇴가 불가능합니다.")
+            
             toplevel3.destroy()
             toplevel2.destroy()
         
@@ -134,9 +209,11 @@ def Member_search() :
         modifybutton = Button(toplevel3, text = "수정", command = modify)
         outbutton = Button(toplevel3, text = "탈퇴", command = out)
         cancelbutton = Button(toplevel3, text = "취소", command = cancel)
+        overlapbutton = Button(toplevel3, text = "중복 조회", command = overlapcheck ,font =("돋움체", 8),fg= "red" , width = 10)
         modifybutton.place(x = 275, y = 400)
         outbutton.place(x = 325, y = 400)
         cancelbutton.place(x = 375, y = 400)
+        overlapbutton.place(x = 480, y = 100)
 
     def quit2() :
         toplevel2.destroy()
@@ -158,7 +235,8 @@ def Member_search() :
     nametext2.place(x = 325, y = 130)
 
     searchbutton = Button(toplevel2, text = "조회", command = search)
-    choicebutton = Button(toplevel2, text = "선택", command = choice)
+    choicebutton = Button(toplevel2, text = "선택")
+    choicebutton.bind('<Button>', choice)
     cancelbutton = Button(toplevel2, text = "취소", command = quit2)
     searchbutton.place(x = 275, y = 400)
     choicebutton.place(x = 325, y = 400)
